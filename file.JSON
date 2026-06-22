@@ -1,0 +1,64 @@
+{
+  "project": {
+    "name": "Sultify",
+    "version": "1.0.0",
+    "type": "Music Streaming Platform",
+    "author": "Sulton",
+    "description": "Platform streaming musik modern dengan tampilan premium."
+  },
+  "technology": {
+    "frontend": [
+      "HTML5",
+      "CSS3",
+      "JavaScript",
+      "Bootstrap 5"
+    ],
+    "backend": [
+      "PHP Native 8"
+    ],
+    "database": [
+      "MySQL"
+    ]
+  },
+  "theme": {
+    "mode": "dark",
+    "primary_color": "#1DB954",
+    "background_color": "#121212",
+    "sidebar_color": "#000000",
+    "card_color": "#181818",
+    "text_color": "#FFFFFF"
+  },
+  "features": {
+    "authentication": true,
+    "music_player": true,
+    "playlist": true,
+    "favorite_songs": true,
+    "search": true,
+    "admin_panel": true,
+    "user_profile": true
+  },
+  "database": {
+    "tables": [
+      "users",
+      "songs",
+      "artists",
+      "albums",
+      "playlists",
+      "playlist_songs",
+      "favorites",
+      "history",
+      "admins"
+    ]
+  },
+  "pages": [
+    "home",
+    "search",
+    "library",
+    "playlist",
+    "artist",
+    "profile",
+    "login",
+    "register",
+    "admin_dashboard"
+  ]
+}

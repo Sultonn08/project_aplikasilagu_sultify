@@ -1,0 +1,44 @@
+sultify/
+│
+├── assets/
+│   ├── css/
+│   ├── js/
+│   ├── images/
+│   └── music/
+│
+├── config/
+│   └── database.php
+│
+├── includes/
+│   ├── header.php
+│   ├── footer.php
+│   ├── sidebar.php
+│   └── player.php
+│
+├── admin/
+│   ├── dashboard.php
+│   ├── songs.php
+│   ├── artists.php
+│   ├── albums.php
+│   └── users.php
+│
+├── auth/
+│   ├── login.php
+│   ├── register.php
+│   └── logout.php
+│
+├── pages/
+│   ├── home.php
+│   ├── search.php
+│   ├── playlist.php
+│   ├── artist.php
+│   ├── library.php
+│   └── profile.php
+│
+├── uploads/
+│   ├── songs/
+│   └── covers/
+│
+├── index.php
+├── .htaccess
+└── sultify.sql
