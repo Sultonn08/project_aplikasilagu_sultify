@@ -20,9 +20,15 @@
     <nav class="sidebar-nav">
         <div class="nav-label">Playlist Anda</div>
         <ul>
-            <li class="nav-item" onclick="showToast('Fitur buat playlist segera hadir', 'success')">
+            <?php if (isLoggedIn()): ?>
+            <li class="nav-item" id="btn-create-playlist" onclick="openCreatePlaylistModal()">
                 <i class="fa-solid fa-square-plus nav-icon"></i> Buat Playlist
             </li>
+            <?php else: ?>
+            <li class="nav-item" onclick="navigateTo('<?= BASE_URL ?>/auth/login.php')">
+                <i class="fa-solid fa-square-plus nav-icon"></i> Buat Playlist
+            </li>
+            <?php endif; ?>
             <li class="nav-item <?= $page === 'favorites' ? 'active' : '' ?>" onclick="navigateTo('<?= BASE_URL ?>/favorites')">
                 <div class="liked-icon"><i class="fa-solid fa-heart"></i></div> <span>Lagu yang Disukai</span>
             </li>

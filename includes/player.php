@@ -9,6 +9,7 @@
                 <div class="player-song-artist" id="player-artist">Nama Artis</div>
             </div>
             <button class="player-like-btn" id="player-like" onclick="toggleLike()"><i class="fa-regular fa-heart"></i></button>
+            <button class="player-like-btn" id="player-add-to-playlist" onclick="addCurrentSongToPlaylist()" title="Tambah ke Playlist" style="margin-left: 12px; color: var(--text-muted);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'"><i class="fa-solid fa-circle-plus"></i></button>
         </div>
     </div>
 

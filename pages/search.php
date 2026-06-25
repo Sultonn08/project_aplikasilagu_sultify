@@ -81,11 +81,13 @@ if ($q) {
                         <th>Judul</th>
                         <th>Album</th>
                         <th style="text-align: right;"><i class="fa-regular fa-clock"></i></th>
+                        <th style="width:50px;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach($songs as $index => $song): ?>
-                        <?php $playArgs = "{$song['id']}, '" . addslashes($song['title']) . "', '" . addslashes($song['artist_name']) . "', '" . getCoverUrl($song['cover']) . "', '" . BASE_URL . "/uploads/" . $song['file_path'] . "'"; ?>
+                        <?php $playArgs = "{$song['id']}, '" . addslashes($song['title']) . "', '" . addslashes($song['artist_name']) . "', '" . getCoverUrl($song['cover']) . "', '" . BASE_URL . "/uploads/" . $song['file_path'] . "'";
+                              $addArgs  = "{$song['id']}, '" . addslashes($song['title']) . "', '" . addslashes($song['artist_name']) . "', '" . getCoverUrl($song['cover']) . "'"; ?>
                         <tr id="song-row-<?= $song['id'] ?>" onclick="playSong(<?= $playArgs ?>)">
                             <td class="song-num"><?= $index + 1 ?></td>
                             <td>
@@ -101,6 +103,12 @@ if ($q) {
                             </td>
                             <td style="color: var(--text-muted); font-size: .875rem;"><?= htmlspecialchars($song['album_title'] ?? 'Single') ?></td>
                             <td class="song-duration"><?= formatDuration($song['duration']) ?></td>
+                            <td onclick="event.stopPropagation(); openAddToPlaylistModal(<?= $addArgs ?>)"
+                                title="Tambah ke Playlist"
+                                style="cursor:pointer;text-align:center;color:var(--text-muted);font-size:0.9rem;"
+                                onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                                <i class="fa-solid fa-circle-plus"></i>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

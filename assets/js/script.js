@@ -2,6 +2,8 @@
 // Sultify - Player & Main UI Logic
 // ============================================================
 
+const BASE = window.BASE_URL || (window.location.origin + (window.location.pathname.startsWith('/my_vibe') ? '/my_vibe' : ''));
+
 const audio = document.getElementById('audio-element');
 const playBtn = document.getElementById('btn-play');
 const progressFill = document.getElementById('progress-fill');
@@ -242,11 +244,11 @@ function playSong(id, title, artist, coverUrl, audioUrl) {
     if (card) card.classList.add('playing');
     
     // Add to history and update play count via API
-    fetch(`${window.location.origin}/my_vibe/api/play.php?id=${id}`)
+    fetch(`${BASE}/api/play.php?id=${id}`)
         .catch(err => console.error("Gagal mencatat pemutaran:", err));
         
     // Check if song is liked
-    fetch(`${window.location.origin}/my_vibe/api/check_favorite.php?id=${id}`)
+    fetch(`${BASE}/api/check_favorite.php?id=${id}`)
         .then(res => res.json())
         .then(data => {
             const icon = document.getElementById('player-like').querySelector('i');
@@ -287,7 +289,7 @@ function showToast(message, type = 'success') {
 function toggleLike() {
     if (!currentSongId) return;
     
-    fetch(`${window.location.origin}/my_vibe/api/toggle_favorite.php?id=${currentSongId}`)
+    fetch(`${BASE}/api/toggle_favorite.php?id=${currentSongId}`)
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -356,7 +358,7 @@ function fetchLyrics(songId) {
     currentLyricIndex = -1;
     document.getElementById('lyrics-modal').dataset.songId = songId;
     
-    fetch(`${window.location.origin}/my_vibe/api/lyrics.php?id=${songId}`)
+    fetch(`${BASE}/api/lyrics.php?id=${songId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.lyrics) {
@@ -599,7 +601,7 @@ document.addEventListener('input', function(e) {
         }
         
         searchSuggestTimeout = setTimeout(() => {
-            const baseUrlJS = window.location.origin + '/my_vibe';
+            const baseUrlJS = BASE;
             fetch(baseUrlJS + '/api/search_suggest.php?q=' + encodeURIComponent(query))
                 .then(res => res.json())
                 .then(data => {
@@ -640,3 +642,249 @@ document.addEventListener('click', function(e) {
         if (suggestionsBox) suggestionsBox.style.display = 'none';
     }
 });
+
+// ============================================================
+// Playlist Feature — Create / Add-to-Playlist / Remove
+// ============================================================
+
+
+// ── Create Playlist Modal ────────────────────────────────────
+function openCreatePlaylistModal() {
+    const modal = document.getElementById('create-playlist-modal');
+    if (!modal) return;
+    document.getElementById('cp-name').value = '';
+    document.getElementById('cp-desc').value = '';
+    document.getElementById('cp-public').checked = false;
+    document.getElementById('cp-error').style.display = 'none';
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('cp-name').focus(), 100);
+}
+window.openCreatePlaylistModal = openCreatePlaylistModal;
+
+function closeCreatePlaylistModal() {
+    const modal = document.getElementById('create-playlist-modal');
+    if (modal) modal.style.display = 'none';
+}
+window.closeCreatePlaylistModal = closeCreatePlaylistModal;
+
+function submitCreatePlaylist() {
+    const name    = document.getElementById('cp-name').value.trim();
+    const desc    = document.getElementById('cp-desc').value.trim();
+    const isPublic = document.getElementById('cp-public').checked ? 1 : 0;
+    const errEl   = document.getElementById('cp-error');
+    const submitBtn = document.getElementById('cp-submit');
+
+    if (!name) {
+        errEl.textContent = 'Nama playlist tidak boleh kosong.';
+        errEl.style.display = 'block';
+        document.getElementById('cp-name').focus();
+        return;
+    }
+    errEl.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Membuat...';
+
+    const fd = new FormData();
+    fd.append('action', 'create');
+    fd.append('name', name);
+    fd.append('description', desc);
+    if (isPublic) fd.append('is_public', '1');
+
+    fetch(BASE + '/api/playlist.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-plus" style="margin-right:6px;"></i> Buat Playlist';
+            if (data.success) {
+                closeCreatePlaylistModal();
+                showToast('Playlist "' + name + '" berhasil dibuat! 🎵', 'success');
+                // Inject new playlist into sidebar without reload
+                const container = document.querySelector('.sidebar-playlists');
+                if (container) {
+                    const div = document.createElement('div');
+                    div.className = 'playlist-item';
+                    div.onclick = () => navigateTo(BASE + '/playlist?id=' + data.id);
+                    div.textContent = name;
+                    container.insertBefore(div, container.firstChild);
+                }
+                // If on library page, navigate to refresh it
+                if (window.location.search.includes('page=library') || window.location.pathname.includes('/library')) {
+                    navigateTo(BASE + '/library');
+                }
+            } else {
+                errEl.textContent = data.message || 'Terjadi kesalahan.';
+                errEl.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-plus" style="margin-right:6px;"></i> Buat Playlist';
+            errEl.textContent = 'Gagal terhubung ke server.';
+            errEl.style.display = 'block';
+        });
+}
+window.submitCreatePlaylist = submitCreatePlaylist;
+
+// ── Add to Playlist Modal ────────────────────────────────────
+let atpSongId = null;
+
+function openAddToPlaylistModal(songId, songTitle, songArtist, songCover) {
+    atpSongId = songId;
+    document.getElementById('atp-title').textContent  = songTitle;
+    document.getElementById('atp-artist').textContent = songArtist;
+    document.getElementById('atp-cover').src          = songCover;
+
+    const listEl = document.getElementById('atp-list');
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+
+    const modal = document.getElementById('add-to-playlist-modal');
+    if (modal) modal.style.display = 'flex';
+
+    fetch(BASE + '/api/playlist.php?action=list', { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || data.playlists.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.9rem;">Belum ada playlist.<br>Buat playlist baru di bawah.</div>';
+                return;
+            }
+            listEl.innerHTML = '';
+            data.playlists.forEach(pl => {
+                const btn = document.createElement('button');
+                btn.style.cssText = 'width:100%;padding:10px 14px;border-radius:9px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.9rem;font-weight:500;cursor:pointer;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:10px;';
+                btn.innerHTML = '<i class="fa-solid fa-list-music" style="color:var(--primary);font-size:0.85rem;"></i>' + pl.name;
+                btn.onmouseover = () => { btn.style.background = 'rgba(255,255,255,0.09)'; };
+                btn.onmouseout  = () => { btn.style.background = 'rgba(255,255,255,0.04)'; };
+                btn.onclick = () => addSongToPlaylist(pl.id, pl.name, btn);
+                listEl.appendChild(btn);
+            });
+        });
+}
+window.openAddToPlaylistModal = openAddToPlaylistModal;
+
+function closeAddToPlaylistModal() {
+    const modal = document.getElementById('add-to-playlist-modal');
+    if (modal) modal.style.display = 'none';
+    atpSongId = null;
+}
+window.closeAddToPlaylistModal = closeAddToPlaylistModal;
+
+function addSongToPlaylist(playlistId, playlistName, btnEl) {
+    if (!atpSongId) return;
+    if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="color:var(--primary)"></i> Menambahkan...'; }
+
+    const fd = new FormData();
+    fd.append('action', 'add_song');
+    fd.append('playlist_id', playlistId);
+    fd.append('song_id', atpSongId);
+
+    fetch(BASE + '/api/playlist.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                closeAddToPlaylistModal();
+                showToast('Ditambahkan ke "' + playlistName + '" 🎶', 'success');
+            } else {
+                if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fa-solid fa-list-music" style="color:var(--primary);font-size:0.85rem;"></i>' + playlistName; }
+                showToast(data.message || 'Gagal menambahkan lagu.', 'error');
+            }
+        });
+}
+window.addSongToPlaylist = addSongToPlaylist;
+
+// ── Remove Song from Playlist ────────────────────────────────
+function removeSongFromPlaylist(playlistId, songId, rowEl) {
+    if (!confirm('Hapus lagu ini dari playlist?')) return;
+    const fd = new FormData();
+    fd.append('action', 'remove_song');
+    fd.append('playlist_id', playlistId);
+    fd.append('song_id', songId);
+
+    fetch(BASE + '/api/playlist.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                if (rowEl) rowEl.remove();
+                showToast('Lagu dihapus dari playlist.', 'success');
+            } else {
+                showToast(data.message || 'Gagal menghapus.', 'error');
+            }
+        });
+}
+window.removeSongFromPlaylist = removeSongFromPlaylist;
+
+// ── Delete Playlist ──────────────────────────────────────────
+function deletePlaylist(playlistId) {
+    if (!confirm('Yakin ingin menghapus playlist ini? Semua lagu di dalamnya juga akan dihapus dari playlist.')) return;
+    const fd = new FormData();
+    fd.append('action', 'delete');
+    fd.append('playlist_id', playlistId);
+
+    fetch(BASE + '/api/playlist.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Playlist berhasil dihapus.', 'success');
+                navigateTo(BASE + '/library');
+            } else {
+                showToast(data.message || 'Gagal menghapus playlist.', 'error');
+            }
+        });
+}
+window.deletePlaylist = deletePlaylist;
+
+function addCurrentSongToPlaylist() {
+    if (!currentSongId) return;
+    const title = document.getElementById('player-title').innerText;
+    const artist = document.getElementById('player-artist').innerText;
+    const cover = document.getElementById('player-cover-img').src;
+    openAddToPlaylistModal(currentSongId, title, artist, cover);
+}
+window.addCurrentSongToPlaylist = addCurrentSongToPlaylist;
+
+function uploadPlaylistCover(playlistId, inputEl) {
+    const file = inputEl.files[0];
+    if (!file) return;
+
+    const span = document.querySelector('.cover-overlay span');
+    const icon = document.querySelector('.cover-overlay i');
+    const originalText = span ? span.textContent : 'Ubah Foto';
+    const originalIconClass = icon ? icon.className : 'fa-solid fa-camera';
+
+    if (span) span.textContent = 'Mengunggah...';
+    if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+
+    const fd = new FormData();
+    fd.append('action', 'upload_cover');
+    fd.append('playlist_id', playlistId);
+    fd.append('cover', file);
+
+    fetch(BASE + '/api/playlist.php', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+            if (span) span.textContent = originalText;
+            if (icon) icon.className = originalIconClass;
+            inputEl.value = ''; // Reset file input
+
+            if (data.success) {
+                const img = document.getElementById('playlist-cover-img-page');
+                if (img) {
+                    // Append random query param to bypass cache
+                    img.src = data.cover_url + '?t=' + new Date().getTime();
+                }
+                showToast('Cover playlist berhasil diubah! 📸', 'success');
+            } else {
+                showToast(data.message || 'Gagal mengubah cover.', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (span) span.textContent = originalText;
+            if (icon) icon.className = originalIconClass;
+            inputEl.value = '';
+            showToast('Gagal terhubung ke server.', 'error');
+        });
+}
+window.uploadPlaylistCover = uploadPlaylistCover;
+
+
+

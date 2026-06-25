@@ -55,11 +55,13 @@ foreach($songs as $s) $totalDuration += $s['duration'];
             <th width="40" style="text-align: center;">#</th>
             <th>Judul Lagu</th>
             <th style="text-align: right; padding-right: 24px;"><i class="fa-regular fa-clock"></i></th>
+            <th style="width: 50px;"></th>
         </tr>
     </thead>
     <tbody>
         <?php foreach($songs as $index => $song): ?>
             <?php $playArgs = "{$song['id']}, '" . addslashes($song['title']) . "', '" . addslashes($album['artist_name']) . "', '" . getCoverUrl($song['cover'] ?? $album['cover']) . "', '" . BASE_URL . "/uploads/" . $song['file_path'] . "'"; ?>
+            <?php $addArgs = "{$song['id']}, '" . addslashes($song['title']) . "', '" . addslashes($album['artist_name']) . "', '" . getCoverUrl($song['cover'] ?? $album['cover']) . "'"; ?>
             <tr id="song-row-<?= $song['id'] ?>" onclick="playSong(<?= $playArgs ?>)">
                 <td class="song-num" style="text-align: center;"><?= $song['track_number'] ?? ($index + 1) ?></td>
                 <td>
@@ -68,6 +70,12 @@ foreach($songs as $s) $totalDuration += $s['duration'];
                     </div>
                 </td>
                 <td class="song-duration" style="padding-right: 24px;"><?= formatDuration($song['duration']) ?></td>
+                <td onclick="event.stopPropagation(); openAddToPlaylistModal(<?= $addArgs ?>)"
+                    title="Tambah ke Playlist"
+                    style="cursor:pointer;text-align:center;color:var(--text-muted);font-size:0.9rem;"
+                    onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <i class="fa-solid fa-circle-plus"></i>
+                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>
