@@ -45,6 +45,7 @@
 
 <!-- Modal Lirik (Fullscreen Synced) -->
 <div id="lyrics-modal" class="lyrics-overlay">
+    <canvas id="rain-canvas" style="position: absolute; inset: 0; pointer-events: none; z-index: 1;"></canvas>
     <div class="lyrics-overlay-header">
         <button class="lyrics-close-btn" onclick="toggleLyrics()"><i class="fa-solid fa-chevron-down"></i></button>
     </div>

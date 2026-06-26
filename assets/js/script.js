@@ -323,6 +323,76 @@ function toggleLike() {
 let parsedLyrics = [];
 let currentLyricIndex = -1;
 
+let rainAnimationFrameId = null;
+let rainDrops = [];
+
+function initRain() {
+    const canvas = document.getElementById('rain-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    const handleResize = () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    };
+    window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+    
+    const maxDrops = 120;
+    rainDrops = [];
+    
+    for (let i = 0; i < maxDrops; i++) {
+        rainDrops.push({
+            x: Math.random() * width,
+            y: Math.random() * height - height,
+            length: Math.random() * 25 + 15,
+            speed: Math.random() * 6 + 5,
+            opacity: Math.random() * 0.25 + 0.1
+        });
+    }
+    
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        ctx.lineWidth = 1.2;
+        ctx.lineCap = 'round';
+        
+        for (let i = 0; i < maxDrops; i++) {
+            const d = rainDrops[i];
+            ctx.strokeStyle = `rgba(174, 194, 224, ${d.opacity})`;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y);
+            ctx.lineTo(d.x + (d.speed * 0.12), d.y + d.length);
+            ctx.stroke();
+            
+            d.y += d.speed;
+            d.x += d.speed * 0.12;
+            
+            if (d.y > height) {
+                d.y = -d.length;
+                d.x = Math.random() * width;
+                d.speed = Math.random() * 6 + 5;
+            }
+        }
+        rainAnimationFrameId = requestAnimationFrame(draw);
+    }
+    
+    if (rainAnimationFrameId) {
+        cancelAnimationFrame(rainAnimationFrameId);
+    }
+    draw();
+}
+
+function stopRain() {
+    if (rainAnimationFrameId) {
+        cancelAnimationFrame(rainAnimationFrameId);
+        rainAnimationFrameId = null;
+    }
+}
+
 function toggleLyrics() {
     if (!currentSongId) {
         showToast("Pilih lagu terlebih dahulu", "error");
@@ -333,9 +403,11 @@ function toggleLyrics() {
     if (modal.style.display === 'flex') {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto'; // restore scrolling
+        stopRain();
     } else {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; // prevent background scrolling
+        initRain();
         
         // Set cover image for the lyrics modal
         const currentCover = document.getElementById('player-cover-img').src;

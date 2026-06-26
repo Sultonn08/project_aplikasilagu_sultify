@@ -784,18 +784,15 @@ input, select, textarea {
 /* ── Fullscreen Synced Lyrics ──────────────────────────────── */
 .lyrics-overlay {
   display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-  background: linear-gradient(135deg, #4b1d52, #182b49, #14453b, #4a2118, #3B1B2C);
-  background-size: 400% 400%;
-  animation: lyricsGradient 30s ease infinite;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.75)), url('../images/rainy_forest.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   z-index: 150; /* Changed from 1000 to be UNDER the player (which is 200) */
   overflow: hidden; align-items: center; justify-content: center;
   flex-direction: column; padding-bottom: 100px; /* space for the player */
 }
-@keyframes lyricsGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+
 .lyrics-overlay-header {
   position: absolute; top: 0; left: 0; width: 100%; display: flex; align-items: center; justify-content: flex-end; padding: 24px 40px; z-index: 10;
 }
@@ -804,6 +801,7 @@ input, select, textarea {
 
 .lyrics-split {
   display: flex; width: 100%; max-width: 1400px; height: 100%; align-items: center; justify-content: space-between; padding: 0 40px; gap: 80px;
+  position: relative; z-index: 5;
 }
 .lyrics-cover-col {
   flex: 1; display: flex; align-items: center; justify-content: center; max-width: 500px;
