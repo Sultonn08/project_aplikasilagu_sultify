@@ -75,7 +75,7 @@ if (audio) {
     volSlider.addEventListener('input', (e) => {
         audio.volume = e.target.value;
     });
-    
+
     // Default volume
     audio.volume = 1;
 
@@ -94,19 +94,19 @@ if (audio) {
 function updateQueue(id) {
     // Find all elements that trigger playSong
     const elements = Array.from(document.querySelectorAll('[onclick*="playSong"]'));
-    
+
     // Find the exact element for this song id using regex
     let el = elements.find(e => {
         const attr = e.getAttribute('onclick');
         const regex = new RegExp(`playSong\\(\\s*${id}\\s*,`);
         return regex.test(attr);
     });
-    
+
     if (el && el.parentElement) {
         const container = el.parentElement;
         const siblings = container.querySelectorAll('[onclick*="playSong"]');
         originalQueue = Array.from(siblings);
-        
+
         if (isShuffle) {
             const others = originalQueue.filter(item => item !== el);
             others.sort(() => Math.random() - 0.5);
@@ -125,7 +125,7 @@ function updateQueue(id) {
 
 function playNext() {
     if (playlistQueue.length === 0 || queueIndex === -1) return;
-    
+
     let nextIndex = queueIndex + 1;
     if (nextIndex >= playlistQueue.length) {
         if (repeatMode === 1) {
@@ -134,7 +134,7 @@ function playNext() {
             return; // End of queue
         }
     }
-    
+
     isSystemPlay = true;
     queueIndex = nextIndex;
     playlistQueue[queueIndex].click();
@@ -142,12 +142,12 @@ function playNext() {
 
 function playPrev() {
     if (playlistQueue.length === 0 || queueIndex === -1) return;
-    
+
     if (audio.currentTime > 3) {
         audio.currentTime = 0;
         return;
     }
-    
+
     let prevIndex = queueIndex - 1;
     if (prevIndex < 0) {
         if (repeatMode === 1) {
@@ -158,7 +158,7 @@ function playPrev() {
             return;
         }
     }
-    
+
     isSystemPlay = true;
     queueIndex = prevIndex;
     playlistQueue[queueIndex].click();
@@ -177,7 +177,7 @@ if (btnShuffle) {
     btnShuffle.addEventListener('click', () => {
         isShuffle = !isShuffle;
         btnShuffle.style.color = isShuffle ? 'var(--primary)' : 'inherit';
-        
+
         if (playlistQueue.length > 0 && queueIndex !== -1) {
             const currentEl = playlistQueue[queueIndex];
             if (isShuffle) {
@@ -196,10 +196,10 @@ if (btnShuffle) {
 if (btnRepeat) {
     btnRepeat.addEventListener('click', () => {
         repeatMode = (repeatMode + 1) % 3;
-        
+
         // btnRepeat needs position relative for the badge
         btnRepeat.style.position = 'relative';
-        
+
         if (repeatMode === 0) {
             btnRepeat.style.color = 'inherit';
             btnRepeat.innerHTML = '<i class="fa-solid fa-repeat"></i>';
@@ -219,34 +219,34 @@ function playSong(id, title, artist, coverUrl, audioUrl) {
     document.getElementById('player-title').innerText = title;
     document.getElementById('player-artist').innerText = artist;
     document.getElementById('player-cover-img').src = coverUrl;
-    
+
     audio.src = audioUrl;
     audio.play().catch(e => {
         showToast("Gagal memutar lagu: Format tidak didukung atau file hilang", "error");
         console.error(e);
     });
-    
+
     currentSongId = id;
-    
+
     if (!isSystemPlay) {
         updateQueue(id);
     }
     isSystemPlay = false; // reset
-    
+
     // Update styling baris list lagu yang sedang aktif
     document.querySelectorAll('.song-list tr').forEach(tr => tr.classList.remove('playing'));
     document.querySelectorAll('.quick-card').forEach(card => card.classList.remove('playing'));
-    
+
     const row = document.getElementById(`song-row-${id}`);
     if (row) row.classList.add('playing');
-    
+
     const card = document.getElementById(`song-card-${id}`);
     if (card) card.classList.add('playing');
-    
+
     // Add to history and update play count via API
     fetch(`${BASE}/api/play.php?id=${id}`)
         .catch(err => console.error("Gagal mencatat pemutaran:", err));
-        
+
     // Check if song is liked
     fetch(`${BASE}/api/check_favorite.php?id=${id}`)
         .then(res => res.json())
@@ -278,7 +278,7 @@ function showToast(message, type = 'success') {
     toast.className = `toast ${type}`;
     toast.innerText = message;
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
@@ -288,7 +288,7 @@ function showToast(message, type = 'success') {
 // Like/Unlike Feature
 function toggleLike() {
     if (!currentSongId) return;
-    
+
     fetch(`${BASE}/api/toggle_favorite.php?id=${currentSongId}`)
         .then(res => res.json())
         .then(data => {
@@ -302,7 +302,7 @@ function toggleLike() {
                     likeBtn.classList.remove('liked');
                     icon.className = 'fa-regular fa-heart';
                     showToast('Dihapus dari Lagu Disukai');
-                    
+
                     // If we are currently on the favorites page, we can hide the row for immediate feedback
                     const row = document.getElementById(`song-row-${currentSongId}`);
                     if (row && window.location.pathname.includes('/favorites')) {
@@ -323,73 +323,124 @@ function toggleLike() {
 let parsedLyrics = [];
 let currentLyricIndex = -1;
 
-let rainAnimationFrameId = null;
-let rainDrops = [];
+let smokeAnimationFrameId = null;
 
-function initRain() {
-    const canvas = document.getElementById('rain-canvas');
+function initSmoke() {
+    const canvas = document.getElementById('smoke-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-    
-    const handleResize = () => {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+
+    // Original image dimensions (1024×1024 square)
+    const IMG_W = 1024, IMG_H = 1024;
+
+    // Cigarette tip: glowing ember at the end of cigarette held by man's right hand
+    // Visually confirmed: tip is at upper-left of the hand, x=64.75%, y=59.08%
+    const CIG_REL_X = 0.6475;
+    const CIG_REL_Y = 0.5908;
+
+    let W, H;
+
+    const onResize = () => {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
     };
-    window.removeEventListener('resize', handleResize);
-    window.addEventListener('resize', handleResize);
-    
-    const maxDrops = 120;
-    rainDrops = [];
-    
-    for (let i = 0; i < maxDrops; i++) {
-        rainDrops.push({
-            x: Math.random() * width,
-            y: Math.random() * height - height,
-            length: Math.random() * 25 + 15,
-            speed: Math.random() * 6 + 5,
-            opacity: Math.random() * 0.25 + 0.1
+    window.removeEventListener('resize', onResize);
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    // Map image-relative coords to screen pixels (accounts for cover-fit on square image)
+    function imgToScreen(relX, relY) {
+        const rImg  = IMG_W / IMG_H; // 1.0
+        const rCont = W / H;
+        let rW, rH, oX, oY;
+        if (rCont > rImg) {           // wide screen: fit to width
+            rW = W;   rH = W / rImg;
+            oX = 0;   oY = (H - rH) / 2;
+        } else {                      // tall screen: fit to height
+            rH = H;   rW = H * rImg;
+            oX = (W - rW) / 2;  oY = 0;
+        }
+        return { x: oX + relX * rW,  y: oY + relY * rH };
+    }
+
+    const particles = [];
+    let frame = 0;
+
+    function spawnParticle() {
+        const tip = imgToScreen(CIG_REL_X, CIG_REL_Y);
+        particles.push({
+            x:      tip.x + (Math.random() - 0.5) * 2,
+            y:      tip.y - 4 + (Math.random() - 0.5) * 2,   // slightly above the tip
+            vx:     -0.06 - Math.random() * 0.10,   // drift slightly left
+            vy:     -(0.40 + Math.random() * 0.30),  // rise upward
+            alpha:  0.22 + Math.random() * 0.10,    // slightly brighter smoke
+            size:   0.8 + Math.random() * 1.2,      // start tiny
+            growth: 0.07 + Math.random() * 0.07,    // slow grow
+            fade:   0.0028 + Math.random() * 0.0012,
+            wobble: Math.random() * Math.PI * 2,
+            wSpd:   0.016 + Math.random() * 0.012,
         });
     }
-    
+
     function draw() {
-        ctx.clearRect(0, 0, width, height);
-        
-        ctx.lineWidth = 1.2;
-        ctx.lineCap = 'round';
-        
-        for (let i = 0; i < maxDrops; i++) {
-            const d = rainDrops[i];
-            ctx.strokeStyle = `rgba(174, 194, 224, ${d.opacity})`;
-            ctx.beginPath();
-            ctx.moveTo(d.x, d.y);
-            ctx.lineTo(d.x + (d.speed * 0.12), d.y + d.length);
-            ctx.stroke();
-            
-            d.y += d.speed;
-            d.x += d.speed * 0.12;
-            
-            if (d.y > height) {
-                d.y = -d.length;
-                d.x = Math.random() * width;
-                d.speed = Math.random() * 6 + 5;
+        frame++;
+        ctx.clearRect(0, 0, W, H);
+
+        // Spawn 1 particle every 4 frames (thin wisp, not a cloud)
+        if (frame % 4 === 0) spawnParticle();
+        if (frame % 7 === 0 && Math.random() < 0.6) spawnParticle(); // occasional double
+
+        // Hard cap to prevent buildup
+        if (particles.length > 22) particles.splice(0, particles.length - 22);
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+
+            p.wobble += p.wSpd;
+            p.x += p.vx + Math.sin(p.wobble) * 0.20;
+            p.y += p.vy;
+            p.size  += p.growth;
+            p.alpha -= p.fade;
+
+            if (p.alpha <= 0 || p.y < -p.size) {
+                particles.splice(i, 1);
+                continue;
             }
+
+            // Soft radial gradient — grey-white, thin
+            const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+            gr.addColorStop(0,   `rgba(220,225,235,${p.alpha.toFixed(3)})`);
+            gr.addColorStop(0.55,`rgba(220,225,235,${(p.alpha * 0.25).toFixed(3)})`);
+            gr.addColorStop(1,   'rgba(220,225,235,0)');
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = gr;
+            ctx.fill();
         }
-        rainAnimationFrameId = requestAnimationFrame(draw);
+
+        // ── Glowing ember at cigarette tip ───────────────────────
+        const tip = imgToScreen(CIG_REL_X, CIG_REL_Y);
+        const pulse = 0.55 + 0.45 * Math.sin(frame * 0.08); // soft flicker
+        const emberGrad = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 5);
+        emberGrad.addColorStop(0,   `rgba(255,180,60,${(0.75 * pulse).toFixed(2)})`);
+        emberGrad.addColorStop(0.4, `rgba(220,90,20,${(0.45 * pulse).toFixed(2)})`);
+        emberGrad.addColorStop(1,   'rgba(180,40,0,0)');
+        ctx.beginPath();
+        ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = emberGrad;
+        ctx.fill();
+
+        smokeAnimationFrameId = requestAnimationFrame(draw);
     }
-    
-    if (rainAnimationFrameId) {
-        cancelAnimationFrame(rainAnimationFrameId);
-    }
+
+    if (smokeAnimationFrameId) cancelAnimationFrame(smokeAnimationFrameId);
     draw();
 }
 
-function stopRain() {
-    if (rainAnimationFrameId) {
-        cancelAnimationFrame(rainAnimationFrameId);
-        rainAnimationFrameId = null;
+function stopSmoke() {
+    if (smokeAnimationFrameId) {
+        cancelAnimationFrame(smokeAnimationFrameId);
+        smokeAnimationFrameId = null;
     }
 }
 
@@ -398,17 +449,17 @@ function toggleLyrics() {
         showToast("Pilih lagu terlebih dahulu", "error");
         return;
     }
-    
+
     const modal = document.getElementById('lyrics-modal');
     if (modal.style.display === 'flex') {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto'; // restore scrolling
-        stopRain();
+        stopSmoke();
     } else {
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; // prevent background scrolling
-        initRain();
-        
+        initSmoke();
+
         // Set cover image for the lyrics modal
         const currentCover = document.getElementById('player-cover-img').src;
         document.getElementById('lyrics-cover-img').src = currentCover;
@@ -429,7 +480,7 @@ function fetchLyrics(songId) {
     parsedLyrics = [];
     currentLyricIndex = -1;
     document.getElementById('lyrics-modal').dataset.songId = songId;
-    
+
     fetch(`${BASE}/api/lyrics.php?id=${songId}`)
         .then(response => response.json())
         .then(data => {
@@ -451,7 +502,7 @@ function parseLRC(lrcText) {
     const lines = lrcText.split('\n');
     // Regex supports [mm:ss], [mm:ss.x], [mm:ss.xx], [mm:ss.xxx]
     const timeRegEx = /\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/;
-    
+
     let hasTimeTags = false;
 
     lines.forEach(line => {
@@ -460,18 +511,18 @@ function parseLRC(lrcText) {
             hasTimeTags = true;
             const minutes = parseInt(match[1], 10);
             const seconds = parseInt(match[2], 10);
-            
+
             let ms = 0;
             if (match[3]) {
                 if (match[3].length === 1) ms = parseInt(match[3], 10) * 100;
                 else if (match[3].length === 2) ms = parseInt(match[3], 10) * 10;
                 else ms = parseInt(match[3], 10);
             }
-            
+
             // Calculate total time in seconds
             const time = minutes * 60 + seconds + (ms / 1000);
             const text = line.replace(timeRegEx, '').trim();
-            
+
             if (text) {
                 parsedLyrics.push({ time, text });
             }
@@ -480,7 +531,7 @@ function parseLRC(lrcText) {
 
     // Sort by time just in case
     parsedLyrics.sort((a, b) => a.time - b.time);
-    
+
     // Fallback if no LRC format is found, treat as plain text
     if (!hasTimeTags) {
         parsedLyrics = lines.filter(l => l.trim() !== '').map(text => ({ time: -1, text }));
@@ -490,12 +541,12 @@ function parseLRC(lrcText) {
 function renderLyrics() {
     const content = document.getElementById('lyrics-content');
     content.innerHTML = '';
-    
+
     if (parsedLyrics.length === 0) {
         content.innerHTML = '<div class="lyric-line active" style="font-size: 1.5rem; text-align: center;">Lirik kosong.</div>';
         return;
     }
-    
+
     // Append blank space at the top so first line is centered
     const topSpacer = document.createElement('div');
     topSpacer.style.height = '30vh';
@@ -506,7 +557,7 @@ function renderLyrics() {
         div.className = 'lyric-line';
         div.id = `lyric-${index}`;
         div.innerText = lyric.text;
-        
+
         // If it's plain text (no time tags), just show them all
         if (lyric.time === -1) {
             div.classList.add('active');
@@ -520,20 +571,20 @@ function renderLyrics() {
                 audio.play();
             };
         }
-        
+
         content.appendChild(div);
     });
-    
+
     syncLyrics(); // Sync initially
 }
 
 function syncLyrics() {
     const modal = document.getElementById('lyrics-modal');
     if (modal.style.display !== 'flex' || parsedLyrics.length === 0 || parsedLyrics[0].time === -1) return;
-    
+
     const currentTime = audio.currentTime;
     let newIndex = -1;
-    
+
     // Find the current lyric index
     for (let i = 0; i < parsedLyrics.length; i++) {
         if (currentTime >= parsedLyrics[i].time) {
@@ -542,31 +593,31 @@ function syncLyrics() {
             break;
         }
     }
-    
+
     if (newIndex !== currentLyricIndex) {
         // Remove active class from previous
         if (currentLyricIndex !== -1) {
             const prevEl = document.getElementById(`lyric-${currentLyricIndex}`);
             if (prevEl) prevEl.classList.remove('active');
         }
-        
+
         // Add active class to new
         if (newIndex !== -1) {
             const newEl = document.getElementById(`lyric-${newIndex}`);
             if (newEl) {
                 newEl.classList.add('active');
-                
+
                 // Auto-scroll logic: scroll the container so the active line is near the middle/top
                 const container = document.getElementById('lyrics-container');
                 const scrollPos = newEl.offsetTop - (container.clientHeight / 2) + 60;
-                
+
                 container.scrollTo({
                     top: scrollPos > 0 ? scrollPos : 0,
                     behavior: 'smooth'
                 });
             }
         }
-        
+
         currentLyricIndex = newIndex;
     }
 }
@@ -583,33 +634,33 @@ async function navigateTo(url, push = true) {
     try {
         const response = await fetch(url);
         if (!response.ok) throw new Error('Network response was not ok');
-        
+
         const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        
+
         // Extract main content and sidebar
         const newMain = doc.querySelector('.main-content');
         const newSidebar = doc.querySelector('.sidebar');
-        
+
         if (newMain) {
             document.querySelector('.main-content').innerHTML = newMain.innerHTML;
-            
+
             if (newSidebar) {
                 document.querySelector('.sidebar').innerHTML = newSidebar.innerHTML;
             }
-            
+
             // Push state
             if (push) {
                 window.history.pushState({}, '', url);
             }
-            
+
             // Scroll to top
             document.querySelector('.main-content').scrollTop = 0;
-            
+
             // Update greeting if on home page
             updateGreeting();
-            
+
             // Re-apply highlight to currently playing song if it's on this page
             if (currentSongId) {
                 const row = document.getElementById(`song-row-${currentSongId}`);
@@ -660,18 +711,18 @@ updateGreeting(); // Run immediately in case DOM is already loaded
 
 // Live Search Suggestions
 let searchSuggestTimeout;
-document.addEventListener('input', function(e) {
+document.addEventListener('input', function (e) {
     if (e.target.classList.contains('live-search-input')) {
         const query = e.target.value.trim();
         const suggestionsBox = document.getElementById('search-suggestions');
-        
+
         clearTimeout(searchSuggestTimeout);
-        
+
         if (query.length === 0) {
             if (suggestionsBox) suggestionsBox.style.display = 'none';
             return;
         }
-        
+
         searchSuggestTimeout = setTimeout(() => {
             const baseUrlJS = BASE;
             fetch(baseUrlJS + '/api/search_suggest.php?q=' + encodeURIComponent(query))
@@ -708,7 +759,7 @@ document.addEventListener('input', function(e) {
 });
 
 // Hide suggestions when clicking outside
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     if (!e.target.closest('.search-bar-wrap')) {
         const suggestionsBox = document.getElementById('search-suggestions');
         if (suggestionsBox) suggestionsBox.style.display = 'none';
@@ -740,10 +791,10 @@ function closeCreatePlaylistModal() {
 window.closeCreatePlaylistModal = closeCreatePlaylistModal;
 
 function submitCreatePlaylist() {
-    const name    = document.getElementById('cp-name').value.trim();
-    const desc    = document.getElementById('cp-desc').value.trim();
+    const name = document.getElementById('cp-name').value.trim();
+    const desc = document.getElementById('cp-desc').value.trim();
     const isPublic = document.getElementById('cp-public').checked ? 1 : 0;
-    const errEl   = document.getElementById('cp-error');
+    const errEl = document.getElementById('cp-error');
     const submitBtn = document.getElementById('cp-submit');
 
     if (!name) {
@@ -802,9 +853,9 @@ let atpSongId = null;
 
 function openAddToPlaylistModal(songId, songTitle, songArtist, songCover) {
     atpSongId = songId;
-    document.getElementById('atp-title').textContent  = songTitle;
+    document.getElementById('atp-title').textContent = songTitle;
     document.getElementById('atp-artist').textContent = songArtist;
-    document.getElementById('atp-cover').src          = songCover;
+    document.getElementById('atp-cover').src = songCover;
 
     const listEl = document.getElementById('atp-list');
     listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i></div>';
@@ -825,7 +876,7 @@ function openAddToPlaylistModal(songId, songTitle, songArtist, songCover) {
                 btn.style.cssText = 'width:100%;padding:10px 14px;border-radius:9px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:0.9rem;font-weight:500;cursor:pointer;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:10px;';
                 btn.innerHTML = '<i class="fa-solid fa-list-music" style="color:var(--primary);font-size:0.85rem;"></i>' + pl.name;
                 btn.onmouseover = () => { btn.style.background = 'rgba(255,255,255,0.09)'; };
-                btn.onmouseout  = () => { btn.style.background = 'rgba(255,255,255,0.04)'; };
+                btn.onmouseout = () => { btn.style.background = 'rgba(255,255,255,0.04)'; };
                 btn.onclick = () => addSongToPlaylist(pl.id, pl.name, btn);
                 listEl.appendChild(btn);
             });

@@ -45,7 +45,15 @@
 
 <!-- Modal Lirik (Fullscreen Synced) -->
 <div id="lyrics-modal" class="lyrics-overlay">
-    <canvas id="rain-canvas" style="position: absolute; inset: 0; pointer-events: none; z-index: 1;"></canvas>
+    <!-- Wrapper for animated background elements (keeps smoke and background in sync) -->
+    <div class="lyrics-bg-container">
+        <!-- Layer 0: background image with ken-burns pan -->
+        <div class="lyrics-bg-zoom"></div>
+        <!-- Layer 1: edge vignette -->
+        <div class="lyrics-vignette"></div>
+        <!-- Layer 2: animated cigarette smoke canvas (inside the scaled container) -->
+        <canvas id="smoke-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
+    </div>
     <div class="lyrics-overlay-header">
         <button class="lyrics-close-btn" onclick="toggleLyrics()"><i class="fa-solid fa-chevron-down"></i></button>
     </div>
