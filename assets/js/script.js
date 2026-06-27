@@ -373,7 +373,7 @@ function initSmoke() {
             y:      tip.y - 4 + (Math.random() - 0.5) * 2,   // slightly above the tip
             vx:     -0.06 - Math.random() * 0.10,   // drift slightly left
             vy:     -(0.40 + Math.random() * 0.30),  // rise upward
-            alpha:  0.22 + Math.random() * 0.10,    // slightly brighter smoke
+            alpha:  0.32 + Math.random() * 0.12,    // brighter smoke
             size:   0.8 + Math.random() * 1.2,      // start tiny
             growth: 0.07 + Math.random() * 0.07,    // slow grow
             fade:   0.0028 + Math.random() * 0.0012,
@@ -409,9 +409,9 @@ function initSmoke() {
 
             // Soft radial gradient — grey-white, thin
             const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-            gr.addColorStop(0,   `rgba(220,225,235,${p.alpha.toFixed(3)})`);
-            gr.addColorStop(0.55,`rgba(220,225,235,${(p.alpha * 0.25).toFixed(3)})`);
-            gr.addColorStop(1,   'rgba(220,225,235,0)');
+            gr.addColorStop(0,   `rgba(235,238,245,${p.alpha.toFixed(3)})`);
+            gr.addColorStop(0.55,`rgba(235,238,245,${(p.alpha * 0.25).toFixed(3)})`);
+            gr.addColorStop(1,   'rgba(235,238,245,0)');
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fillStyle = gr;
@@ -421,12 +421,13 @@ function initSmoke() {
         // ── Glowing ember at cigarette tip ───────────────────────
         const tip = imgToScreen(CIG_REL_X, CIG_REL_Y);
         const pulse = 0.55 + 0.45 * Math.sin(frame * 0.08); // soft flicker
-        const emberGrad = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 5);
-        emberGrad.addColorStop(0,   `rgba(255,180,60,${(0.75 * pulse).toFixed(2)})`);
-        emberGrad.addColorStop(0.4, `rgba(220,90,20,${(0.45 * pulse).toFixed(2)})`);
-        emberGrad.addColorStop(1,   'rgba(180,40,0,0)');
+        const emberGrad = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 6);
+        emberGrad.addColorStop(0,    `rgba(255,235,180,${(0.95 * pulse).toFixed(2)})`); // hot yellow-white core
+        emberGrad.addColorStop(0.25, `rgba(255,180,50,${(0.85 * pulse).toFixed(2)})`);  // bright orange
+        emberGrad.addColorStop(0.6,  `rgba(230,70,10,${(0.55 * pulse).toFixed(2)})`);    // warm red-orange
+        emberGrad.addColorStop(1,    'rgba(180,20,0,0)');                              // fade out
         ctx.beginPath();
-        ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2);
+        ctx.arc(tip.x, tip.y, 6, 0, Math.PI * 2);
         ctx.fillStyle = emberGrad;
         ctx.fill();
 
