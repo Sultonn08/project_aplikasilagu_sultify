@@ -1011,4 +1011,223 @@ function uploadPlaylistCover(playlistId, inputEl) {
 window.uploadPlaylistCover = uploadPlaylistCover;
 
 
+// ============================================================
+// Settings Page Functions
+// ============================================================
 
+/**
+ * Switch the active settings tab panel and highlight the menu item.
+ * @param {string} tabId  e.g. 'profil', 'edit-profil', 'ganti-password'
+ * @param {boolean} updateUrl  whether to update the browser URL (default true)
+ */
+function switchSettingsTab(tabId, updateUrl = true) {
+    // Deactivate all panels and menu items
+    document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.settings-menu-item').forEach(i => i.classList.remove('active'));
+
+    // Activate target panel
+    const panel = document.getElementById('panel-' + tabId);
+    if (panel) panel.classList.add('active');
+
+    // Activate target menu item
+    const menuItem = document.getElementById('tab-menu-' + tabId);
+    if (menuItem) menuItem.classList.add('active');
+
+    // Update URL param without navigation
+    if (updateUrl) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabId);
+        window.history.replaceState({}, '', url.toString());
+    }
+}
+
+/**
+ * Handle profile update form submission (AJAX, supports file upload).
+ */
+async function handleProfileUpdate(e) {
+    e.preventDefault();
+    const form = document.getElementById('form-edit-profile');
+    const btn = document.getElementById('btn-save-profile');
+    const originalText = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(BASE + '/api/settings.php', {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+
+            // Update the profile view tab with new values
+            const fnEl = document.getElementById('settings-profile-fullname');
+            if (fnEl) fnEl.textContent = formData.get('fullname');
+
+            // Update avatar preview in both tabs
+            if (data.avatar) {
+                const avatarUrl = BASE + '/assets/images/' + data.avatar;
+                const profileImg = document.getElementById('settings-profile-img');
+                const editPreview = document.getElementById('edit-avatar-preview');
+                if (profileImg) profileImg.src = avatarUrl;
+                if (editPreview) editPreview.src = avatarUrl;
+
+                // Also update topbar user avatar
+                const topbarAvatarImg = document.querySelector('.user-avatar img');
+                if (topbarAvatarImg) topbarAvatarImg.src = avatarUrl;
+            }
+
+            // Update topbar name
+            const topbarName = document.querySelector('.user-menu-name');
+            if (topbarName && data.full_name) topbarName.textContent = data.full_name;
+
+            // Go back to profile view
+            switchSettingsTab('profil');
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (err) {
+        showToast('Gagal terhubung ke server.', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Handle password change form submission (AJAX).
+ */
+async function handlePasswordChange(e) {
+    e.preventDefault();
+    const form = document.getElementById('form-change-password');
+    const btn = document.getElementById('btn-save-password');
+    const originalText = btn.innerHTML;
+
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengubah...';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch(BASE + '/api/settings.php', {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+            form.reset();
+            switchSettingsTab('profil');
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (err) {
+        showToast('Gagal terhubung ke server.', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Preview the selected avatar image before upload.
+ */
+function previewAvatar(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const label = document.getElementById('file-chosen');
+    if (label) label.textContent = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const preview = document.getElementById('edit-avatar-preview');
+        if (preview) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            if (preview.nextElementSibling) preview.nextElementSibling.style.display = 'none';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Toggle password field visibility (show/hide).
+ */
+function togglePassVisibility(btn) {
+    const input = btn.previousElementSibling || btn.parentNode.querySelector('input');
+    if (!input) return;
+
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = isText ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+}
+
+/**
+ * Select a theme color, apply CSS variables, and save to localStorage.
+ */
+const THEME_COLORS = {
+    violet:  { primary: '#8B5CF6', dark: '#7C3AED', glow: 'rgba(139, 92, 246, .4)' },
+    emerald: { primary: '#10B981', dark: '#059669', glow: 'rgba(16, 185, 129, .4)' },
+    ocean:   { primary: '#3B82F6', dark: '#2563EB', glow: 'rgba(59, 130, 246, .4)' },
+    ruby:    { primary: '#E11D48', dark: '#BE123C', glow: 'rgba(225, 29, 72, .4)' },
+    amber:   { primary: '#F59E0B', dark: '#D97706', glow: 'rgba(245, 158, 11, .4)' },
+};
+
+function selectThemeColor(colorKey) {
+    const theme = THEME_COLORS[colorKey];
+    if (!theme) return;
+
+    const root = document.documentElement;
+    root.style.setProperty('--primary',      theme.primary);
+    root.style.setProperty('--primary-dark', theme.dark);
+    root.style.setProperty('--primary-glow', theme.glow);
+
+    localStorage.setItem('theme-color', colorKey);
+
+    // Update UI selection state
+    document.querySelectorAll('.theme-option-card').forEach(el => el.classList.remove('active'));
+    const card = document.getElementById('theme-' + colorKey);
+    if (card) card.classList.add('active');
+
+    showToast('Tema "' + colorKey.charAt(0).toUpperCase() + colorKey.slice(1) + '" diterapkan!', 'success');
+}
+
+// Apply saved theme on every page load
+(function applySavedTheme() {
+    const saved = localStorage.getItem('theme-color');
+    if (saved && THEME_COLORS[saved]) selectThemeColor(saved);
+})();
+
+/**
+ * Change app language (stored in localStorage, refreshes labels if applicable).
+ */
+function changeAppLanguage(lang) {
+    localStorage.setItem('language', lang);
+    showToast(lang === 'id' ? 'Bahasa diubah ke Bahasa Indonesia.' : 'Language changed to English.', 'success');
+}
+
+/**
+ * Toggle autoplay state (saved to localStorage, read by the player).
+ */
+function toggleAutoplayState(enabled) {
+    localStorage.setItem('autoplay', enabled ? 'true' : 'false');
+    showToast(enabled ? 'Autoplay diaktifkan.' : 'Autoplay dinonaktifkan.', 'success');
+}
+
+// Expose globally
+window.switchSettingsTab  = switchSettingsTab;
+window.handleProfileUpdate = handleProfileUpdate;
+window.handlePasswordChange = handlePasswordChange;
+window.previewAvatar      = previewAvatar;
+window.togglePassVisibility = togglePassVisibility;
+window.selectThemeColor   = selectThemeColor;
+window.changeAppLanguage  = changeAppLanguage;
+window.toggleAutoplayState = toggleAutoplayState;

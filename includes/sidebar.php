@@ -14,6 +14,9 @@
             <li class="nav-item <?= $page === 'library' ? 'active' : '' ?>" onclick="navigateTo('<?= BASE_URL ?>/library')">
                 <i class="fa-solid fa-book-open"></i> <span>Koleksi Kamu</span>
             </li>
+            <li class="nav-item <?= $page === 'settings' ? 'active' : '' ?>" onclick="navigateTo('<?= BASE_URL ?>/settings')">
+                <i class="fa-solid fa-sliders"></i> <span>Pengaturan</span>
+            </li>
         </ul>
     </nav>
 

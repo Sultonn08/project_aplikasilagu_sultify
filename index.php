@@ -21,6 +21,7 @@ $valid_pages = [
     'profile'   => 'pages/profile.php',
     'favorites' => 'pages/favorites.php',
     'album'     => 'pages/album.php',
+    'settings'  => 'pages/settings.php',
 ];
 
 // Fallback 404 (Untuk saat ini redirect ke home)
